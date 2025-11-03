@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <title>Dang'ara tumani kanali Reklama kalkulyatori</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+    <div class="price-card">
+        <img src="img/header.png" alt="Reklama narxlari" class="banner">
+        <div class="price-table">
+            <div class="price-col">
+                <h3>Oddiy</h3>
+                <p id="regular-price">200 000 so'm</p>
+            </div>
+            <div class="price-col">
+                <h3>Prime</h3>
+                <p id="prime-price">250 000 so'm</p>
+            </div>
+        </div>
+        <p class="silka-info">+ Silka uchun: <b id="silka-price">50 000 so'm</b></p>
+        <div class="info-block">
+            <p><strong>Oddiy:</strong> 8:00–16:00</p>
+            <p><strong>Prime:</strong> 17:00–21:00</p>
+            <p><small>Silkali reklama — tashqi havola bo‘lsa</small></p>
+        </div>
+        <p class="monthly">Oylik tariflar kelishtiriladi</p>
+    </div>
+
+    <h2>Narx Kalkulyatori</h2>
+
+    <div class="form-group">
+        <label>Jami reklama soni</label>
+        <input type="number" id="totalCount" min="1" value="1">
+    </div>
+
+    <div class="dual-input">
+        <div class="form-group">
+            <label>Oddiy</label>
+            <input type="number" id="regularCount" readonly>
+        </div>
+        <div class="form-group">
+            <label>Prime</label>
+            <input type="number" id="primeCount" min="0" value="0">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Silkali reklama soni</label>
+        <input type="number" id="silkaliCount" min="0" value="0">
+    </div>
+
+    <div class="extras">
+        <p class="extras-title">Qo‘shimcha (1 ta reklama uchun):</p>
+        <label class="checkbox">
+            <input type="checkbox" id="topOption">
+            <span id="top-price">TOP (30 daq) — 100 000 so'm</span>
+        </label>
+        <label class="checkbox">
+            <input type="checkbox" id="pinOption">
+            <span id="pin-price">PIN (24 soat) — 250 000 so'm</span>
+        </label>
+    </div>
+
+    <div class="platform">
+        <p>Reklama tarqatiladi:</p>
+        <label class="platform-item">
+            <input type="checkbox" checked disabled>
+            <i class="fab fa-telegram-plane"></i>
+            <a href="https://t.me/dangara_tumani_kanali" target="_blank">@dangara_tumani_kanali</a>
+        </label>
+    </div>
+
+    <button class="btn-calc">Hisoblash</button>
+
+    <!-- Natija joyi -->
+    <div id="resultSection">
+        <div id="fullResult" class="result" style="display:none;"></div>
+    </div>
+
+    <!-- Operator tugmasi: faqat ikonka + matn, havola JS da -->
+    <div id="orderButtonBox" class="actions" style="display:none;">
+        <button class="btn-order">Buyurtma berish</button>
+        <button id="operatorBtn" class="btn-agent">Operator</button>
+    </div>
+
+    <!-- Modal -->
+    <div id="orderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Buyurtma</h3>
+                <span class="close">x</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Reklama nomi:</label>
+                    <input type="text" id="adName" placeholder="Masalan: Yangi chegirma">
+                </div>
+                <div class="form-group">
+                    <label>Telefon:</label>
+                    <div class="phone">
+                        <span>+998</span>
+                        <input type="tel" id="phoneDigits" maxlength="9" placeholder="990953018">
+                    </div>
+                    <small class="hint">Faqat 9 ta raqam</small>
+                </div>
+                <div class="form-group">
+                    <label>Telegram username:</label>
+                    <input type="text" id="telegramUsername" placeholder="@username" required>
+                    <small class="hint">Masalan: @john_doe</small>
+                </div>
+                <div class="form-group">
+                    <label>Izoh (ixtiyoriy):</label>
+                    <textarea id="additionalInfo" rows="2" placeholder="Qo‘shimcha..."></textarea>
+                </div>
+                <button id="submitBtn">Yuborish</button>
+                <div id="orderStatus"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
