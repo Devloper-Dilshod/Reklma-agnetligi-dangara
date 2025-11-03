@@ -4,52 +4,76 @@ const PRIME_PRICE   = 90000;
 const SILKA_PRICE   = 40000;
 const TOP_PRICE     = 100000;
 const PIN_PRICE     = 200000;
-const BOT_TOKEN     = '8272202488:AAHB-TO91QiYEKzl9N3VQKq4kkkqyHhtZp8';   // o‘zgartiring
-const ADMIN_ID      = '7445142075';             // o‘zgartiring
-const OPERATOR_USERNAME = 'dangara_agent';     // @siz, faqat username
-const MASS_MEDIA_NAME = "DANG'ARA YANGILIKLARI REKLAMA BO'LIMI";
-const DISCOUNT_TIERS = [{ min: 3, percent: 5 }];
+const BOT_TOKEN     = '8272202488:AAHB-TO91QiYEKzl9N3VQKq4kkkqyHhtZp8';
+const ADMIN_IDS     = ['7445142075' , '6069823531', '7349819129'];
+const OPERATOR_USERNAME = 'dangara_agent';
+const MASS_MEDIA_NAME = "DANG'ARA TUMANI KANALI";
 
 let currentQrText = '';
 
-// === INPUTLarni yangilash ===
 function updateCounts() {
-    let total   = parseInt(document.getElementById("totalCount").value) || 0;
+    let total   = parseInt(document.getElementById("totalCount").value) || 1;
+    let regular = parseInt(document.getElementById("regularCount").value) || 0;
     let prime   = parseInt(document.getElementById("primeCount").value) || 0;
     let silkali = parseInt(document.getElementById("silkaliCount").value) || 0;
 
-    if (total < 1) { total = 1; document.getElementById("totalCount").value = 1; }
-    if (prime > total) { prime = total; document.getElementById("primeCount").value = total; }
-    document.getElementById("regularCount").value = total - prime;
-    if (silkali > total) { silkali = total; document.getElementById("silkaliCount").value = total; }
+    const sum = regular + prime;
+    if (sum > total) {
+        if (document.activeElement.id === "regularCount") {
+            regular = total - prime;
+        } else {
+            prime = total - regular;
+        }
+    }
+
+    const maxSilkali = regular + prime;
+    if (silkali > maxSilkali) {
+        silkali = maxSilkali;
+        document.getElementById("silkaliCount").value = silkali;
+    }
+
+    document.getElementById("regularCount").max = total;
+    document.getElementById("primeCount").max = total;
+    document.getElementById("silkaliCount").max = maxSilkali;
+
+    document.getElementById("regularCount").value = regular;
+    document.getElementById("primeCount").value = prime;
 
     const top = document.getElementById("topOption");
     const pin = document.getElementById("pinOption");
-    if (total > 1) { top.checked = pin.checked = false; top.disabled = pin.disabled = true; }
-    else { top.disabled = pin.disabled = false; }
+    if (total > 1) {
+        top.checked = pin.checked = false;
+        top.disabled = pin.disabled = true;
+    } else {
+        top.disabled = pin.disabled = false;
+    }
 
     document.getElementById("fullResult").style.display = "none";
     document.getElementById("orderButtonBox").style.display = "none";
     closeOrderForm();
 }
 
-// === Hisoblash + Scroll + Animatsiya ===
+function setupMobileInput(id) {
+    const el = document.getElementById(id);
+    el.addEventListener("input", (e) => {
+        let val = e.target.value.replace(/\D/g, "");
+        if (val === "" && id !== "totalCount") val = "0";
+        e.target.value = val;
+        updateCounts();
+    });
+}
+
 document.querySelector(".btn-calc").addEventListener("click", calculatePrice);
 function calculatePrice() {
-    const total   = parseInt(document.getElementById("totalCount").value);
-    const prime   = parseInt(document.getElementById("primeCount").value);
-    const regular = total - prime;
-    const silkali = parseInt(document.getElementById("silkaliCount").value);
+    const total   = parseInt(document.getElementById("totalCount").value) || 1;
+    const regular = parseInt(document.getElementById("regularCount").value) || 0;
+    const prime   = parseInt(document.getElementById("primeCount").value) || 0;
+    const silkali = parseInt(document.getElementById("silkaliCount").value) || 0;
 
     const regularCost = regular * REGULAR_PRICE;
     const primeCost   = prime   * PRIME_PRICE;
     const silkaCost   = silkali * SILKA_PRICE;
     let totalRaw = regularCost + primeCost + silkaCost;
-
-    let discount = 0;
-    for (let t of DISCOUNT_TIERS) if (total >= t.min) discount = t.percent;
-    const discountAmt = totalRaw * discount / 100;
-    let subtotal = totalRaw - discountAmt;
 
     let extra = 0;
     const extras = [];
@@ -57,44 +81,34 @@ function calculatePrice() {
         if (document.getElementById("topOption").checked) { extra += TOP_PRICE; extras.push("TOP"); }
         if (document.getElementById("pinOption").checked) { extra += PIN_PRICE; extras.push("PIN"); }
     }
-    const final = subtotal + extra;
+    const final = totalRaw + extra;
 
     const now  = new Date();
-    const date = now.toLocaleDateString("uz-UZ", { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const date = now.toLocaleDateString("uz-UZ", { day: '2-digit', month: '2-digit', year: 'numeric' });
     const time = now.toLocaleTimeString("uz-UZ", { hour: '2-digit', minute: '2-digit' });
-    const no   = Math.floor(100000 + Math.random() * 900000);
+    const no   = String(Date.now()).slice(-6);
 
     currentQrText = `Chek №${no}\n${date} ${time}\nReklama: ${total}\nOddiy: ${regular}\nPrime: ${prime}\nSilkali: ${silkali}\nQo‘shimcha: ${extras.join(" + ") || "Yo‘q"}\nYakuniy: ${final.toLocaleString()} so‘m`;
-    const qr = `https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(currentQrText)}`;
-
-    const services = `
-        <h4>Xizmatlar:</h4>
-        <p>Jami: ${total} ta</p>
-        ${regular ? `<p>Oddiy: ${regular} ta</p>` : ''}
-        ${prime   ? `<p>Prime: ${prime} ta</p>` : ''}
-        ${silkali ? `<p>Silkali: ${silkali} ta</p>` : ''}
-        <p>Telegram</p>
-        ${extras.length ? `<p>Qo‘shimcha: ${extras.join(" + ")}</p>` : ''}
-    `;
-
-    const costs = `
-        <h4>Narxlar:</h4>
-        ${regularCost ? `<p>Oddiy: +${regularCost.toLocaleString()} so‘m</p>` : ''}
-        ${primeCost   ? `<p>Prime: +${primeCost.toLocaleString()} so‘m</p>` : ''}
-        ${silkaCost   ? `<p>Silka: +${silkaCost.toLocaleString()} so‘m</p>` : ''}
-        ${extra       ? `<p>Qo‘shimcha: +${extra.toLocaleString()} so‘m</p>` : ''}
-        ${discountAmt ? `<p>Chegirma ${discount}%: -${discountAmt.toLocaleString()} so‘m</p>` : ''}
-    `;
+    const qr = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(currentQrText)}`;
 
     const result = document.getElementById("fullResult");
     result.innerHTML = `
         <div id="cheque" class="cheque">
             <h3>${MASS_MEDIA_NAME}</h3>
             <small>Reklama cheki</small>
-            <div class="meta">Chek № ${no}<br>${date} ${time}</div>
-            ${services}
+            <div class="meta">№ ${no} | ${date} ${time}</div>
+            <h4>Xizmatlar:</h4>
+            <p>Jami: ${total} ta</p>
+            ${regular ? `<p>Oddiy: ${regular} ta</p>` : ''}
+            ${prime ? `<p>Prime: ${prime} ta</p>` : ''}
+            ${silkali ? `<p>Silkali: ${silkali} ta</p>` : ''}
+            ${extras.length ? `<p>Qo‘shimcha: ${extras.join(" + ")}</p>` : ''}
             <hr>
-            ${costs}
+            <h4>Narxlar:</h4>
+            ${regularCost ? `<p>Oddiy: +${regularCost.toLocaleString()} so‘m</p>` : ''}
+            ${primeCost ? `<p>Prime: +${primeCost.toLocaleString()} so‘m</p>` : ''}
+            ${silkaCost ? `<p>Silka: +${silkaCost.toLocaleString()} so‘m</p>` : ''}
+            ${extra ? `<p>Qo‘shimcha: +${extra.toLocaleString()} so‘m</p>` : ''}
             <hr>
             <div class="total">Yakuniy: ${final.toLocaleString()} so‘m</div>
             <div class="footer">
@@ -118,9 +132,8 @@ function calculatePrice() {
     }, 10);
 }
 
-// === Print & Download ===
 document.getElementById("fullResult").addEventListener("click", e => {
-    if (e.target.tagName !== "BUTTON") return;
+    if (!e.target.classList.contains("icon")) return;
     if (e.target.textContent.includes("Print")) printCheque();
     if (e.target.textContent.includes("Download")) downloadPNG();
 });
@@ -131,10 +144,10 @@ function printCheque() {
     win.document.write(`
         <html><head><title>Chek</title>
         <style>
-            body{font-family:monospace;padding:20px;}
-            .cheque{width:300px;margin:auto;border:1px dashed #000;padding:15px;font-size:14px;}
-            hr{border:none;border-top:1px dashed #999;margin:10px 0;}
-            .total{font-weight:bold;text-align:center;margin:15px 0;font-size:16px;}
+            body{font-family:monospace;padding:20px;background:#fff;}
+            .cheque{width:280px;margin:auto;border:1px dashed #000;padding:15px;font-size:13px;}
+            hr{border-top:1px dashed #999;margin:10px 0;}
+            .total{font-weight:bold;text-align:center;margin:15px 0;font-size:15px;}
         </style></head>
         <body>${el.innerHTML}</body></html>
     `);
@@ -144,129 +157,103 @@ function printCheque() {
 
 function downloadPNG() {
     const el = document.getElementById("cheque");
-    html2canvas(el, { scale: 3, useCORS: true }).then(c => {
+    html2canvas(el, { scale: 3 }).then(c => {
         const a = document.createElement("a");
         a.href = c.toDataURL("image/png");
-        a.download = "reklama_cheki.png";
+        a.download = "chek.png";
         a.click();
     });
 }
 
-// === Operator tugmasi: t.me/username ga o‘tish ===
 document.getElementById("operatorBtn").addEventListener("click", () => {
     window.open(`https://t.me/${OPERATOR_USERNAME}`, '_blank');
 });
 
-// === Modal ochish/yopish ===
+// MODAL – BIRDA OCHILADI, OLDINDA
 document.querySelector(".btn-order").addEventListener("click", () => {
     const modal = document.getElementById("orderModal");
     modal.style.display = "flex";
-    setTimeout(() => modal.classList.add("show"), 10);
+    document.body.style.overflow = "hidden";
+    setTimeout(() => {
+        modal.classList.add("show");
+        modal.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
 });
+
 document.querySelector(".close").addEventListener("click", closeOrderForm);
-window.addEventListener("click", e => { if (e.target === document.getElementById("orderModal")) closeOrderForm(); });
+window.addEventListener("click", e => {
+    if (e.target === document.getElementById("orderModal")) closeOrderForm();
+});
 
 function closeOrderForm() {
     const modal = document.getElementById("orderModal");
     modal.classList.remove("show");
-    setTimeout(() => { modal.style.display = "none"; }, 300);
+    document.body.style.overflow = "auto";
+    setTimeout(() => { modal.style.display = "none"; }, 350);
     document.getElementById("orderStatus").innerHTML = "";
 }
 
-// === Buyurtma yuborish (bir marta, blokirovka bilan) ===
 document.getElementById("submitBtn").addEventListener("click", submitOrder);
 
 function submitOrder() {
-    const submitBtn = document.getElementById("submitBtn");
-    const orderStatus = document.getElementById("orderStatus");
-
-    // Agar tugma allaqachon bosilgan bo‘lsa
-    if (submitBtn.disabled) return;
+    const btn = document.getElementById("submitBtn");
+    const status = document.getElementById("orderStatus");
+    if (btn.disabled) return;
 
     const name = document.getElementById("adName").value.trim();
     const digits = document.getElementById("phoneDigits").value.trim();
     const username = document.getElementById("telegramUsername").value.trim();
     const note = document.getElementById("additionalInfo").value.trim();
 
-    // Validatsiya
-    if (!/^\d{9}$/.test(digits)) {
-        orderStatus.innerHTML = '<p class="error">Noto‘g‘ri! Format: +998990953018</p>';
-        return;
-    }
-    if (!name) {
-        orderStatus.innerHTML = '<p class="error">Reklama nomi kiritilishi shart!</p>';
-        return;
-    }
-    if (!username || !username.startsWith('@')) {
-        orderStatus.innerHTML = '<p class="error">Telegram username kiritilishi shart! (@bilan)</p>';
-        return;
-    }
+    if (!/^\d{9}$/.test(digits)) { status.innerHTML = '<p class="error">9 ta raqam kiriting!</p>'; return; }
+    if (!name) { status.innerHTML = '<p class="error">Nomi yo‘q!</p>'; return; }
+    if (!username.startsWith('@')) { status.innerHTML = '<p class="error">@username kiriting!</p>'; return; }
 
-    // Tugma bloklanadi + matn o‘zgaradi
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = 'Yuborilmoqda...';
+    btn.disabled = true;
+    btn.innerHTML = 'Yuborilmoqda...';
 
     const phone = `+998${digits}`;
     const now = new Date();
-    const date = now.toLocaleDateString("uz-UZ", { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const date = now.toLocaleDateString("uz-UZ", { day: '2-digit', month: '2-digit', year: 'numeric' });
     const time = now.toLocaleTimeString("uz-UZ", { hour: '2-digit', minute: '2-digit' });
 
     const cheque = document.getElementById("cheque");
-    html2canvas(cheque, { scale: 2, useCORS: true }).then(canvas => {
+    html2canvas(cheque, { scale: 2 }).then(canvas => {
         const img = canvas.toDataURL("image/png");
-        const caption = `Reklama Buyurtmasi\n\n` +
-            `Reklama nomi: ${name}\n` +
-            `Telefon: ${phone}\n` +
-            `Telegram: ${username}\n` +
-            `Izoh: ${note || "Yo'q"}\n` +
-            `Vaqt: ${date} ${time}\n\n` +
-            `Operator: @${OPERATOR_USERNAME}\n`;
+        const caption = `Buyurtma\n\nNomi: ${name}\nTel: ${phone}\nTG: ${username}\nIzoh: ${note || "Yo'q"}\nVaqt: ${date} ${time}\n\nOperator: @${OPERATOR_USERNAME}`;
 
-        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
-        const fd = new FormData();
-        fd.append('chat_id', ADMIN_ID);
-        fd.append('photo', dataURLtoBlob(img), 'cheque.png');
-        fd.append('caption', caption);
-        fd.append('parse_mode', 'HTML');
+        const blob = dataURLtoBlob(img);
+        let success = 0, fail = 0;
 
-        fetch(url, { method: 'POST', body: fd })
-            .then(r => r.json())
-            .then(d => {
-                if (d.ok) {
-                    submitBtn.innerHTML = 'Yuborildi!';
-                    submitBtn.style.background = '#28a745';
-                    orderStatus.innerHTML = '<p class="success">Buyurtma adminga yuborildi!</p>';
+        ADMIN_IDS.forEach((id, i) => {
+            setTimeout(() => {
+                const fd = new FormData();
+                fd.append('chat_id', id);
+                fd.append('photo', blob, 'chek.png');
+                fd.append('caption', caption);
+
+                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: fd })
+                    .then(r => r.json())
+                    .then(d => { if (d.ok) success++; else fail++; check(); })
+                    .catch(() => { fail++; check(); });
+            }, i * 300);
+        });
+
+        function check() {
+            if (success + fail === ADMIN_IDS.length) {
+                if (success > 0) {
+                    btn.innerHTML = 'Yuborildi!';
+                    status.innerHTML = `<p class="success">Yuborildi: ${success}/${ADMIN_IDS.length}</p>`;
                 } else {
-                    submitBtn.innerHTML = 'Xato!';
-                    submitBtn.style.background = '#dc3545';
-                    orderStatus.innerHTML = `<p class="error">Xatolik: ${d.description}</p>`;
-                    // Xato bo‘lsa tugma qayta faollashadi
-                    setTimeout(() => {
-                        submitBtn.disabled = false;
-                        submitBtn.innerHTML = 'Yuborish';
-                        submitBtn.style.background = '#007bff';
-                    }, 2000);
+                    btn.innerHTML = 'Xato!';
+                    status.innerHTML = '<p class="error">Yuborilmadi!</p>';
                 }
-            })
-            .catch(e => {
-                submitBtn.innerHTML = 'Xato!';
-                submitBtn.style.background = '#dc3545';
-                orderStatus.innerHTML = `<p class="error">Xatolik: ${e.message}</p>`;
                 setTimeout(() => {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = 'Yuborish';
-                    submitBtn.style.background = '#007bff';
+                    btn.disabled = false;
+                    btn.innerHTML = 'Yuborish';
                 }, 2000);
-            });
-    }).catch(err => {
-        submitBtn.innerHTML = 'Xato!';
-        submitBtn.style.background = '#dc3545';
-        orderStatus.innerHTML = `<p class="error">Rasm yaratishda xato!</p>`;
-        setTimeout(() => {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = 'Yuborish';
-            submitBtn.style.background = '#007bff';
-        }, 2000);
+            }
+        }
     });
 }
 
@@ -279,17 +266,18 @@ function dataURLtoBlob(dataURL) {
     return new Blob([arr], { type: mime });
 }
 
-// === Boshlang‘ich narxlar va inputlar ===
 window.addEventListener("load", () => {
     document.getElementById("regular-price").textContent = `${REGULAR_PRICE.toLocaleString()} so'm`;
     document.getElementById("prime-price").textContent   = `${PRIME_PRICE.toLocaleString()} so'm`;
     document.getElementById("silka-price").textContent   = `${SILKA_PRICE.toLocaleString()} so'm`;
-    document.getElementById("top-price").textContent     = `TOP (30 daq) — ${TOP_PRICE.toLocaleString()} so'm`;
-    document.getElementById("pin-price").textContent     = `PIN (24 soat) — ${PIN_PRICE.toLocaleString()} so'm`;
-    updateCounts();
+    document.getElementById("top-price").textContent     = `TOP — ${TOP_PRICE.toLocaleString()} so'm`;
+    document.getElementById("pin-price").textContent     = `PIN — ${PIN_PRICE.toLocaleString()} so'm`;
 
-    // Input o‘zgarishi → avto-yangilash
-    ["totalCount", "primeCount", "silkaliCount"].forEach(id =>
-        document.getElementById(id).addEventListener("input", updateCounts)
-    );
+    ["totalCount", "regularCount", "primeCount", "silkaliCount"].forEach(id => {
+        const el = document.getElementById(id);
+        el.oninput = updateCounts;
+        setupMobileInput(id);
+    });
+
+    updateCounts();
 });
