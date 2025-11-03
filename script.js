@@ -4,6 +4,8 @@ const PRIME_PRICE   = 90000;
 const SILKA_PRICE   = 40000;
 const TOP_PRICE     = 100000;
 const PIN_PRICE     = 200000;
+const BOT_TOKEN     = '8272202488:AAHB-TO91QiYEKzl9N3VQKq4kkkqyHhtZp8';   // o‘zgartiring
+const ADMIN_ID      = '7445142075';             // o‘zgartiring
 const OPERATOR_USERNAME = 'dangara_agent';     // @siz, faqat username
 const MASS_MEDIA_NAME = "DANG'ARA YANGILIKLARI REKLAMA BO'LIMI";
 const DISCOUNT_TIERS = [{ min: 3, percent: 5 }];
@@ -172,9 +174,13 @@ function closeOrderForm() {
 }
 
 // === Buyurtma yuborish (bir marta, blokirovka bilan) ===
-// Buyurtma yuborish – API orqali
-document.getElementById("submitBtn").addEventListener("click", async () => {
+document.getElementById("submitBtn").addEventListener("click", submitOrder);
+
+function submitOrder() {
     const submitBtn = document.getElementById("submitBtn");
+    const orderStatus = document.getElementById("orderStatus");
+
+    // Agar tugma allaqachon bosilgan bo‘lsa
     if (submitBtn.disabled) return;
 
     const name = document.getElementById("adName").value.trim();
@@ -182,45 +188,87 @@ document.getElementById("submitBtn").addEventListener("click", async () => {
     const username = document.getElementById("telegramUsername").value.trim();
     const note = document.getElementById("additionalInfo").value.trim();
 
+    // Validatsiya
     if (!/^\d{9}$/.test(digits)) {
-        document.getElementById("orderStatus").innerHTML = '<p class="error">Telefon noto‘g‘ri!</p>';
+        orderStatus.innerHTML = '<p class="error">Noto‘g‘ri! Format: +998990953018</p>';
         return;
     }
-    if (!name || !username.startsWith('@')) {
-        document.getElementById("orderStatus").innerHTML = '<p class="error">Ma\'lumot to‘liq emas!</p>';
+    if (!name) {
+        orderStatus.innerHTML = '<p class="error">Reklama nomi kiritilishi shart!</p>';
+        return;
+    }
+    if (!username || !username.startsWith('@')) {
+        orderStatus.innerHTML = '<p class="error">Telegram username kiritilishi shart! (@bilan)</p>';
         return;
     }
 
+    // Tugma bloklanadi + matn o‘zgaradi
     submitBtn.disabled = true;
     submitBtn.innerHTML = 'Yuborilmoqda...';
 
+    const phone = `+998${digits}`;
+    const now = new Date();
+    const date = now.toLocaleDateString("uz-UZ", { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const time = now.toLocaleTimeString("uz-UZ", { hour: '2-digit', minute: '2-digit' });
+
     const cheque = document.getElementById("cheque");
-    const canvas = await html2canvas(cheque, { scale: 2 });
-    const img = canvas.toDataURL("image/png");
+    html2canvas(cheque, { scale: 2, useCORS: true }).then(canvas => {
+        const img = canvas.toDataURL("image/png");
+        const caption = `Reklama Buyurtmasi\n\n` +
+            `Reklama nomi: ${name}\n` +
+            `Telefon: ${phone}\n` +
+            `Telegram: ${username}\n` +
+            `Izoh: ${note || "Yo'q"}\n` +
+            `Vaqt: ${date} ${time}\n\n` +
+            `Operator: @${OPERATOR_USERNAME}\n`;
 
-    const res = await fetch('/api/send-order.js', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone: `+998${digits}`, username, note, img })
-    });
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`;
+        const fd = new FormData();
+        fd.append('chat_id', ADMIN_ID);
+        fd.append('photo', dataURLtoBlob(img), 'cheque.png');
+        fd.append('caption', caption);
+        fd.append('parse_mode', 'HTML');
 
-    const data = await res.json();
-
-    if (data.success) {
-        submitBtn.innerHTML = 'Yuborildi!';
-        submitBtn.style.background = '#28a745';
-        document.getElementById("orderStatus").innerHTML = '<p class="success">Buyurtma yuborildi!</p>';
-    } else {
+        fetch(url, { method: 'POST', body: fd })
+            .then(r => r.json())
+            .then(d => {
+                if (d.ok) {
+                    submitBtn.innerHTML = 'Yuborildi!';
+                    submitBtn.style.background = '#28a745';
+                    orderStatus.innerHTML = '<p class="success">Buyurtma adminga yuborildi!</p>';
+                } else {
+                    submitBtn.innerHTML = 'Xato!';
+                    submitBtn.style.background = '#dc3545';
+                    orderStatus.innerHTML = `<p class="error">Xatolik: ${d.description}</p>`;
+                    // Xato bo‘lsa tugma qayta faollashadi
+                    setTimeout(() => {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = 'Yuborish';
+                        submitBtn.style.background = '#007bff';
+                    }, 2000);
+                }
+            })
+            .catch(e => {
+                submitBtn.innerHTML = 'Xato!';
+                submitBtn.style.background = '#dc3545';
+                orderStatus.innerHTML = `<p class="error">Xatolik: ${e.message}</p>`;
+                setTimeout(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Yuborish';
+                    submitBtn.style.background = '#007bff';
+                }, 2000);
+            });
+    }).catch(err => {
         submitBtn.innerHTML = 'Xato!';
         submitBtn.style.background = '#dc3545';
-        document.getElementById("orderStatus").innerHTML = `<p class="error">${data.error}</p>`;
+        orderStatus.innerHTML = `<p class="error">Rasm yaratishda xato!</p>`;
         setTimeout(() => {
             submitBtn.disabled = false;
             submitBtn.innerHTML = 'Yuborish';
             submitBtn.style.background = '#007bff';
         }, 2000);
-    }
-});
+    });
+}
 
 function dataURLtoBlob(dataURL) {
     const [meta, b64] = dataURL.split(',');
