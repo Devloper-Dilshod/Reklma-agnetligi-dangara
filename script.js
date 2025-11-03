@@ -5,7 +5,7 @@ const SILKA_PRICE   = 40000;
 const TOP_PRICE     = 100000;
 const PIN_PRICE     = 200000;
 const BOT_TOKEN     = '8272202488:AAHB-TO91QiYEKzl9N3VQKq4kkkqyHhtZp8';
-const ADMIN_IDS     = ['7445142075' , '6069823531', '7349819129'];
+const ADMIN_IDS     = ['7445142075', '6069823531', '7349819129'];
 const OPERATOR_USERNAME = 'dangara_agent';
 const MASS_MEDIA_NAME = "DANG'ARA TUMANI KANALI";
 
@@ -64,6 +64,7 @@ function setupMobileInput(id) {
 }
 
 document.querySelector(".btn-calc").addEventListener("click", calculatePrice);
+
 function calculatePrice() {
     const total   = parseInt(document.getElementById("totalCount").value) || 1;
     const regular = parseInt(document.getElementById("regularCount").value) || 0;
@@ -144,10 +145,12 @@ function printCheque() {
     win.document.write(`
         <html><head><title>Chek</title>
         <style>
-            body{font-family:monospace;padding:20px;background:#fff;}
-            .cheque{width:280px;margin:auto;border:1px dashed #000;padding:15px;font-size:13px;}
-            hr{border-top:1px dashed #999;margin:10px 0;}
-            .total{font-weight:bold;text-align:center;margin:15px 0;font-size:15px;}
+            body{font-family:monospace;padding:20px;background:#fff;text-align:center;}
+            .cheque{width:280px;margin:auto;border:1px dashed #000;padding:15px;font-size:13px;text-align:center;}
+            .cheque * {text-align:center !important;}
+            hr{border-top:1px dashed #999;margin:12px auto;width:80%;max-width:200px;}
+            .total{font-weight:bold;background:#f0f8ff;padding:8px;border-radius:8px;margin:16px auto;width:fit-content;}
+            .footer img {display:block;margin:8px auto;width:80px;height:80px;}
         </style></head>
         <body>${el.innerHTML}</body></html>
     `);
@@ -169,7 +172,6 @@ document.getElementById("operatorBtn").addEventListener("click", () => {
     window.open(`https://t.me/${OPERATOR_USERNAME}`, '_blank');
 });
 
-// MODAL – BIRDA OCHILADI, OLDINDA
 document.querySelector(".btn-order").addEventListener("click", () => {
     const modal = document.getElementById("orderModal");
     modal.style.display = "flex";
@@ -220,9 +222,16 @@ function submitOrder() {
     const cheque = document.getElementById("cheque");
     html2canvas(cheque, { scale: 2 }).then(canvas => {
         const img = canvas.toDataURL("image/png");
-        const caption = `Buyurtma\n\nNomi: ${name}\nTel: ${phone}\nTG: ${username}\nIzoh: ${note || "Yo'q"}\nVaqt: ${date} ${time}\n\nOperator: @${OPERATOR_USERNAME}`;
-
         const blob = dataURLtoBlob(img);
+
+        const caption = `<b>Buyurtma</b>\n\n` +
+                        `<b>Nomi:</b> <code>${name}</code>\n` +
+                        `<b>Tel:</b> <code>${phone}</code>\n` +
+                        `<b>TG:</b> <a href="https://t.me/${username.substring(1)}">${username}</a>\n` +
+                        `<b>Izoh:</b> <i>${note || "Yo'q"}</i>\n` +
+                        `<b>Vaqt:</b> ${date} ${time}\n\n` +
+                        `Operator: @${OPERATOR_USERNAME}`;
+
         let success = 0, fail = 0;
 
         ADMIN_IDS.forEach((id, i) => {
@@ -231,19 +240,23 @@ function submitOrder() {
                 fd.append('chat_id', id);
                 fd.append('photo', blob, 'chek.png');
                 fd.append('caption', caption);
+                fd.append('parse_mode', 'HTML');
 
                 fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, { method: 'POST', body: fd })
                     .then(r => r.json())
-                    .then(d => { if (d.ok) success++; else fail++; check(); })
-                    .catch(() => { fail++; check(); });
-            }, i * 300);
+                    .then(d => {
+                        if (d.ok) success++; else fail++;
+                        checkDone();
+                    })
+                    .catch(() => { fail++; checkDone(); });
+            }, i * 400);
         });
 
-        function check() {
+        function checkDone() {
             if (success + fail === ADMIN_IDS.length) {
                 if (success > 0) {
                     btn.innerHTML = 'Yuborildi!';
-                    status.innerHTML = `<p class="success">Yuborildi: ${success}/${ADMIN_IDS.length}</p>`;
+                    status.innerHTML = `<p class="success">Muvaffaqiyatli: ${success}/${ADMIN_IDS.length}</p>`;
                 } else {
                     btn.innerHTML = 'Xato!';
                     status.innerHTML = '<p class="error">Yuborilmadi!</p>';
@@ -251,7 +264,7 @@ function submitOrder() {
                 setTimeout(() => {
                     btn.disabled = false;
                     btn.innerHTML = 'Yuborish';
-                }, 2000);
+                }, 2500);
             }
         }
     });
